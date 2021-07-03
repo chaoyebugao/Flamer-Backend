@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Flamer.Presentation.Web\Areas\Account\Models\User\SignInSub.cs" Link="Areas\Account\Models\SignInSub.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Areas\Account\Models\User\SignUpSub.cs" Link="Areas\Account\Models\SignUpSub.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\BaseRet.cs" Link="Models\Results\BaseRet.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\DataRet.cs" Link="Models\Results\DataRet.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\MsgRet.cs" Link="Models\Results\MsgRet.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\PagedRet.cs" Link="Models\Results\PagedRet.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\RetCodes.cs" Link="Models\Results\RetCodes.cs" />
+    <Compile Include="..\..\Flamer.Presentation.Web\Models\Results\SuccessRet.cs" Link="Models\Results\SuccessRet.cs" />
+  </ItemGroup>
+  
+
+  <ItemGroup>
+    <!--<PackageReference Include="DryIoc.Microsoft.DependencyInjection" Version="5.1.0" />-->
+    <!--<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />-->
+    <!--<PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />-->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="1.3.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ease.xUnit.DryIoc" Version="0.5.33" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Areas\Account\Models\User" />
+    <Folder Include="Extensions\" />
+    <Folder Include="Models\Results\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Flamer.Data\Flamer.Data.csproj" />
+  </ItemGroup>
+
+</Project>
