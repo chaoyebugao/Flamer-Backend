@@ -1,10 +1,10 @@
-﻿using Flammer.Service.Domain.User;
+﻿using Flamer.Service.Domain.User;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Attributes
+namespace Flamer.Portal.Web.Attributes
 {
     public class CheckTicketAttribute : ActionFilterAttribute
     {

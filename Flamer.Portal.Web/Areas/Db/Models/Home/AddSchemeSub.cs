@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Db.Models.Home
+namespace Flamer.Portal.Web.Areas.Db.Models.Home
 {
     public class AddSchemeSub
     {

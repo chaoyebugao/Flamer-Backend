@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Project.Models.Home
+namespace Flamer.Portal.Web.Areas.Project.Models.Home
 {
     public class AddSub
     {

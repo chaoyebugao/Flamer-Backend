@@ -5,7 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Flammer.Utility.Extensions
+namespace Flamer.Utility.Extensions
 {
     /// <summary>
     /// 枚举

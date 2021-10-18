@@ -14,12 +14,12 @@ namespace Flamer.Service.OSS.Extensions
         /// <summary>
         /// 内网
         /// </summary>
-        public MinioSettings Inner { get; internal set; }
+        public MinioSettings Inner { get; set; }
 
         /// <summary>
         /// 外网（当需要获取预签名URL时）
         /// </summary>
-        public MinioSettings Web { get; internal set; }
+        public MinioSettings Web { get; set; }
 
     }
 

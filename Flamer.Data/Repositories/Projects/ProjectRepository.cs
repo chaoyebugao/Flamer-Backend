@@ -1,11 +1,12 @@
-﻿using Flamer.Data.ViewModels.Projects;
-using Flammer.Model.Backend.Databases.Main.Projects;
-using Flammer.Pagination;
+﻿using Flamer.Model.Web.Databases.Main.Projects;
+using Flamer.Model.ViewModel.Projects;
+using Flamer.Pagination;
 using SQLite;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Flamer.Model.ViewModel;
 
 namespace Flamer.Data.Repositories.Projects
 {
@@ -33,9 +34,9 @@ namespace Flamer.Data.Repositories.Projects
         /// </summary>
         /// <param name="project"></param>
         /// <returns></returns>
-        public async Task<int> Edit(string sysUserName, string id, Project project)
+        public async Task<int> Edit(string id, Project project)
         {
-            var dbProject = await connection.Table<Project>().FirstOrDefaultAsync(m => m.SysUserName == sysUserName && m.Id == id);
+            var dbProject = await connection.Table<Project>().FirstOrDefaultAsync(m => m.Id == id);
             dbProject.Code = project.Code;
             dbProject.Name = project.Name;
             dbProject.Logo = project.Logo;
@@ -47,28 +48,26 @@ namespace Flamer.Data.Repositories.Projects
         /// 移除
         /// </summary>
         /// <param name="sysUserName"></param>
-        /// <param name="projectIds"></param>
+        /// <param name="ids"></param>
         /// <returns></returns>
-        public Task<int> Remove(string sysUserName, IEnumerable<string> projectIds)
+        public Task<int> Remove(IEnumerable<string> ids)
         {
-            return connection.Table<Project>().Where(m => m.SysUserName == sysUserName && projectIds.Contains(m.Id))
+            return connection.Table<Project>().Where(m => ids.Contains(m.Id))
                 .DeleteAsync();
         }
 
         /// <summary>
         /// 代码是否已存在
         /// </summary>
-        /// <param name="sysUserName">用户名</param>
         /// <param name="code">代码</param>
         /// <param name="excludeId">排除的id</param>
         /// <returns></returns>
-        public async Task<bool> CodeExists(string sysUserName, string code, string excludeId = null)
+        public async Task<bool> CodeExists(string code, string excludeId = null)
         {
             var tProject = nameof(Project);
 
             var ps = new List<object>()
             {
-                sysUserName,
                 code.ToLower(),
             };
 
@@ -79,22 +78,65 @@ namespace Flamer.Data.Repositories.Projects
                 ps.Add(excludeId);
             }
 
-            var sql = $"SELECT COUNT(1) FROM {tProject} WHERE SysUserName = ? AND LOWER(Code) = ? AND {excludeIdWhere}";
+            var sql = $"SELECT COUNT(1) FROM {tProject} WHERE LOWER(Code) = ? AND {excludeIdWhere}";
 
             var count = await connection.ExecuteScalarAsync<int>(sql, ps.ToArray());
             return count > 0;
         }
 
         /// <summary>
+        /// 根据代码获取Id
+        /// </summary>
+        /// <param name="code">代码</param>
+        /// <returns></returns>
+        public Task<string> GetId(string code)
+        {
+            var tProject = nameof(Project);
+
+            var ps = new List<object>()
+            {
+                code.ToLower(),
+            };
+
+            var sql = $"SELECT Id FROM {tProject} WHERE LOWER(Code) = ? LIMIT 1";
+
+            return connection.ExecuteScalarAsync<string>(sql, ps.ToArray());
+        }
+
+        /// <summary>
+        /// 根据代码获取Logo
+        /// </summary>
+        /// <param name="code">代码</param>
+        /// <returns></returns>
+        public Task<string> GetLogo(string code)
+        {
+            var tProject = nameof(Project);
+
+            var ps = new List<object>()
+            {
+                code.ToLower(),
+            };
+
+            var sql = $"SELECT Logo FROM {tProject} WHERE LOWER(Code) = ? LIMIT 1";
+
+            return connection.ExecuteScalarAsync<string>(sql, ps.ToArray());
+        }
+
+        /// <summary>
         /// 获取列表
         /// </summary>
-        /// <param name="sysUserName"></param>
         /// <param name="paging"></param>
+        /// <param name="creator"></param>
         /// <param name="keyword"></param>
         /// <returns></returns>
-        public async Task<PagedList<ProjectVm>> GetList(string sysUserName, Paging paging, string keyword)
+        public async Task<PagedList<ProjectVm>> GetList(Paging paging, string creator = null, string keyword = null)
         {
-            var qry = connection.Table<Project>().Where(m => m.SysUserName == sysUserName);
+            var qry = connection.Table<Project>();
+
+            if (!string.IsNullOrEmpty(creator))
+            {
+                qry = qry.Where(m => m.Creator == creator);
+            }
 
             if (!string.IsNullOrEmpty(keyword))
             {
@@ -117,17 +159,31 @@ namespace Flamer.Data.Repositories.Projects
         }
 
         /// <summary>
-        /// 根据项目代码查找项目id
+        /// 获取下拉列表
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
-        /// <param name="projectCode">项目代码</param>
+        /// <param name="keyword"></param>
         /// <returns></returns>
-        public async Task<string> GetProjectId(string sysUserName, string projectCode)
+        public async Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null)
         {
-            var project = await connection.Table<Project>().FirstOrDefaultAsync(m => m.SysUserName == sysUserName && m.Code.ToLower() == projectCode.ToLower());
+            var qry = connection.Table<Project>();
 
-            return project?.Id;
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                qry = qry.Where(m => m.Name.Contains(keyword));
+            }
+
+            var count = await qry.CountAsync();
+            var list = await qry.OrderByDescending(m => m.CreateTime).ToListAsync();
+
+            var vmList = list.Select(m => new SelectVm()
+            {
+                Label = m.Name,
+                Value = m.Code,
+            });
+
+            return vmList;
         }
+
     }
 
 
@@ -145,41 +201,53 @@ namespace Flamer.Data.Repositories.Projects
         /// </summary>
         /// <param name="project"></param>
         /// <returns></returns>
-        Task<int> Edit(string sysUserName, string id, Project project);
+        Task<int> Edit(string id, Project project);
 
         /// <summary>
         /// 移除
         /// </summary>
         /// <param name="sysUserName"></param>
-        /// <param name="projectCodes"></param>
+        /// <param name="ids"></param>
         /// <returns></returns>
-        Task<int> Remove(string sysUserName, IEnumerable<string> projectCodes);
+        Task<int> Remove(IEnumerable<string> ids);
 
         /// <summary>
         /// 代码是否已存在
-        /// </summary>
-        /// <param name="sysUserName">用户名</param>
+        /// </summary>s
         /// <param name="code">代码</param>
         /// <param name="excludeId">排除的id</param>
         /// <returns></returns>
-        Task<bool> CodeExists(string sysUserName, string code, string excludeId = null);
+        Task<bool> CodeExists(string code, string excludeId = null);
+
+        /// <summary>
+        /// 根据代码获取Id
+        /// </summary>
+        /// <param name="code">代码</param>
+        /// <returns></returns>
+        Task<string> GetId(string code);
+
+        /// <summary>
+        /// 根据代码获取Logo
+        /// </summary>
+        /// <param name="code">代码</param>
+        /// <returns></returns>
+        Task<string> GetLogo(string code);
 
         /// <summary>
         /// 获取列表
         /// </summary>
-        /// <param name="sysUserName"></param>
         /// <param name="paging"></param>
+        /// <param name="creator"></param>
         /// <param name="keyword"></param>
         /// <returns></returns>
-        Task<PagedList<ProjectVm>> GetList(string sysUserName, Paging paging, string keyword);
+        Task<PagedList<ProjectVm>> GetList(Paging paging, string creator = null, string keyword = null);
 
         /// <summary>
-        /// 根据项目代码查找项目id
+        /// 获取下拉列表
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
-        /// <param name="projectCode">项目代码</param>
+        /// <param name="keyword"></param>
         /// <returns></returns>
-        Task<string> GetProjectId(string sysUserName, string projectCode);
+        Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null);
     }
 
 }

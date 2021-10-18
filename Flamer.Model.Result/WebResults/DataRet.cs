@@ -32,7 +32,7 @@ namespace Flamer.Model.Result.WebResults
     /// </summary>
     public class DataRet<T> : BaseRet
     {
-        internal DataRet(T data)
+        public DataRet(T data)
         {
             this.Data = data;
         }
@@ -40,7 +40,7 @@ namespace Flamer.Model.Result.WebResults
         /// <summary>
         /// 数据
         /// </summary>
-        public T Data { get; private set; }
+        public T Data { get; set; }
 
     }
 }

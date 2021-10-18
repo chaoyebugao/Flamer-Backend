@@ -1,15 +1,14 @@
 ﻿using Flamer.Data.Repositories.Db;
-using Flamer.Service.Domain;
-using Flammer.Data.ViewModels.Db;
-using Flammer.Model.Backend.Databases.Main.Db;
-using Flammer.Pagination;
+using Flamer.Model.Web.Databases.Main.Db;
+using Flamer.Model.ViewModel.Db;
+using Flamer.Pagination;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Flammer.Service.Domain.Db
+namespace Flamer.Service.Domain.Db
 {
     public class DatabaseService : IDatabaseService
     {
@@ -46,6 +45,7 @@ namespace Flammer.Service.Domain.Db
                 Name = name,
                 ProjectId = projectId,
                 VolPath = volPath,
+                SysUserName = sysUserName,
             };
 
             var dbUsers = schemeUsers?.Select(m => new DbUser()

@@ -7,19 +7,24 @@
 
   <ItemGroup>
     <Compile Remove="data\**" />
+    <Compile Remove="logs\**" />
     <Content Remove="data\**" />
+    <Content Remove="logs\**" />
     <EmbeddedResource Remove="data\**" />
+    <EmbeddedResource Remove="logs\**" />
     <None Remove="data\**" />
+    <None Remove="logs\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.14" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="5.0.2" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="4.13.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Flamer.Portal.Shared\Flamer.Portal.WebShared.csproj" />
+    <ProjectReference Include="..\Flamer.Model.Result\Flamer.Model.Result.csproj" />
     <ProjectReference Include="..\Flamer.Service.Domain\Flamer.Service.Domain.csproj" />
     <ProjectReference Include="..\Flamer.Service.Email\Flamer.Service.Email.csproj" />
   </ItemGroup>
@@ -29,8 +34,8 @@
     <Folder Include="Areas\Account\Views\" />
     <Folder Include="Areas\IPA\Data\" />
     <Folder Include="Areas\IPA\Views\" />
-    <Folder Include="Areas\OSS\Data\" />
-    <Folder Include="Areas\OSS\Views\" />
+    <Folder Include="Areas\Blob\Data\" />
+    <Folder Include="Areas\Blob\Views\" />
     <Folder Include="Areas\Project\Data\" />
     <Folder Include="Areas\Project\Views\" />
     <Folder Include="Areas\Db\Data\" />

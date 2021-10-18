@@ -1,12 +1,8 @@
-﻿using Flamer.Service.Domain.Blob.Models;
+﻿using Flamer.Model.ViewModel.Blob;
 using Flamer.Service.ImageProxy.Extensions;
 using Flamer.Service.ImageProxy.OptionBuilder;
 using Flamer.Service.OSS.Extensions;
 using Flamer.Service.OSS.Services;
-using Minio;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Flammer.Pagination
+namespace Flamer.Pagination
 {
     /// <summary>
     /// 分页模型

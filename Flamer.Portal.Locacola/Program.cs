@@ -1,16 +1,13 @@
-﻿using Flamer.Portal.LocaCola.Services;
-using Flamer.Portal.LocaCola.Settings;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Flamer.Portal.LocaCola
 {
     class Program
     {
-        static void Main(string[] args)
+        static Task Main(string[] args)
         {
             var build = new HostBuilder()
                 .ConfigureHostConfiguration(cfg =>
@@ -20,15 +17,12 @@ namespace Flamer.Portal.LocaCola
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                     .Build();
                 })
-                .ConfigureServices(service =>
+                .ConfigureServices((context, services) =>
                 {
-                    service.AddOptions<WebSettings>("Web");
-
-                    service.AddHostedService<MonitorAutoService>();
+                    services.AddLocaCola(context);
                 });
 
-            build.RunConsoleAsync();
-
+            return build.RunConsoleAsync();
         }
     }
 }

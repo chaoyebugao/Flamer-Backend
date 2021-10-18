@@ -7,25 +7,38 @@
 
   <ItemGroup>
     <Compile Remove="data\**" />
+    <Compile Remove="logs\**" />
     <Content Remove="data\**" />
+    <Content Remove="logs\**" />
     <EmbeddedResource Remove="data\**" />
+    <EmbeddedResource Remove="logs\**" />
     <None Remove="data\**" />
+    <None Remove="logs\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Areas\OSS\Data\" />
-    <Folder Include="Areas\OSS\Views\" />
+    <Compile Include="..\Flamer.Portal.Web\Controllers\BareController.cs" Link="Controllers\BareController.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Filters\HttpGlobalExceptionFilter.cs" Link="Filters\HttpGlobalExceptionFilter.cs" />
+    <Compile Include="..\Flamer.Portal.Web\MidWare\PerformanceLogExtension.cs" Link="MidWare\PerformanceLogExtension.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Areas\Blob\Data\" />
+    <Folder Include="Areas\Blob\Views\" />
     <Folder Include="Attributes\" />
     <Folder Include="Controllers\" />
+    <Folder Include="Filters\" />
+    <Folder Include="MidWare\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.10.14" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="4.13.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Flamer.Portal.Shared\Flamer.Portal.WebShared.csproj" />
+    <ProjectReference Include="..\Flamer.Model.Result\Flamer.Model.Result.csproj" />
     <ProjectReference Include="..\Flamer.Service.Domain\Flamer.Service.Domain.csproj" />
   </ItemGroup>
 

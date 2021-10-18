@@ -1,6 +1,6 @@
 using Flamer.Portal.MidWare;
-using Flammer.Portal.LocalWeb.Extentions;
-using Flammer.Portal.Filters;
+using Flamer.Portal.LocalWeb.Extentions;
+using Flamer.Portal.Filters;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;

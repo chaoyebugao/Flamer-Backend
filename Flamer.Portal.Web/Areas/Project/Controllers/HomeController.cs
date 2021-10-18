@@ -1,12 +1,12 @@
-﻿using Flamer.Data.ViewModels.Projects;
+﻿using Flamer.Model.ViewModel.Projects;
+using Flamer.Pagination;
+using Flamer.Portal.Web.Areas.Project.Models.Home;
+using Flamer.Portal.Web.Attributes;
 using Flamer.Service.Domain.Projects;
-using Flammer.Pagination;
-using Flammer.Portal.Web.Areas.Project.Models.Home;
-using Flammer.Portal.Web.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Project.Controllers
+namespace Flamer.Portal.Web.Areas.Project.Controllers
 {
     [Area("project")]
     [CheckTicket]
@@ -24,8 +24,15 @@ namespace Flammer.Portal.Web.Areas.Project.Controllers
         [HttpPost]
         public async Task<IActionResult> GetList([FromBody] GetListQry qry)
         {
-            var list = await projectService.GetList(SysUserName, qry, qry.Keyword);
+            var list = await projectService.GetList(qry, qry.Creator, qry.Keyword);
             return Paged(list);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetSelectList([FromBody] GetListQry qry)
+        {
+            var list = await projectService.GetListForSelect(qry.Keyword);
+            return Data(list);
         }
 
         [HttpPost]
@@ -39,7 +46,7 @@ namespace Flammer.Portal.Web.Areas.Project.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit([FromBody] EditSub sub)
         {
-            await projectService.Edit(SysUserName, sub.Id, sub.Code, sub.Name, sub.Logo);
+            await projectService.Edit(sub.Id, sub.Code, sub.Name, sub.Logo);
 
             return Success();
         }
@@ -48,7 +55,7 @@ namespace Flammer.Portal.Web.Areas.Project.Controllers
         [HttpPost]
         public async Task<IActionResult> Remove([FromBody] RemoveSub sub)
         {
-             await projectService.Remove(SysUserName, sub.Ids);
+            await projectService.Remove(sub.Ids);
 
             return Success();
         }

@@ -3,18 +3,11 @@
         "windowsAuthentication": false,
         "anonymousAuthentication": true,
         "iisExpress": {
-            "applicationUrl": "http://localhost:20532",
+            "applicationUrl": "http://localhost:8370",
             "sslPort": 0
         }
     },
     "profiles": {
-        "IIS Express": {
-            "commandName": "IISExpress",
-            "launchBrowser": true,
-            "environmentVariables": {
-                "ASPNETCORE_ENVIRONMENT": "Development"
-            }
-        },
         "Flamer.Portal.LocalWeb": {
             "commandName": "Project",
             "launchUrl": "swagger",
@@ -22,7 +15,7 @@
                 "ASPNETCORE_ENVIRONMENT": "Development"
             },
             "dotnetRunMessages": "true",
-            "applicationUrl": "http://0.0.0.0:5001"
+            "applicationUrl": "http://0.0.0.0:8370"
         },
         "Docker": {
             "commandName": "Docker",

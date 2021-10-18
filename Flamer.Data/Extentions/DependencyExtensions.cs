@@ -3,11 +3,11 @@ using Flamer.Data.Repositories.Db;
 using Flamer.Data.Repositories.IPA;
 using Flamer.Data.Repositories.Blob;
 using Flamer.Data.Repositories.Projects;
-using Flammer.Model.Backend.Databases.Main;
+using Flamer.Model.Web.Databases.Main;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Flammer.Data
+namespace Flamer.Data
 {
     public static class DependencyExtensions 
     {

@@ -1,6 +1,6 @@
-﻿using Flammer.Data.ViewModels.Db;
-using Flammer.Model.Backend.Databases.Main.Db;
-using Flammer.Pagination;
+﻿using Flamer.Model.Web.Databases.Main.Db;
+using Flamer.Model.ViewModel.Db;
+using Flamer.Pagination;
 using SQLite;
 using System;
 using System.Collections.Generic;
@@ -79,7 +79,7 @@ namespace Flamer.Data.Repositories.Db
                 ps.Add(p);
             }
 
-            var tmpSql = $@"SELECT {{0}} FROM DbUser AS u INNER JOIN DbScheme AS s ON s.Id = u.SchemeId WHERE u.SysUserName = ? AND {keywordWhere}";
+            var tmpSql = $@"SELECT {{0}} FROM DbUser AS u INNER JOIN DbScheme AS s ON s.Id = u.SchemeId WHERE s.SysUserName = ? AND {keywordWhere}";
 
             
             var countSql = string.Format(tmpSql, "COUNT(1)");

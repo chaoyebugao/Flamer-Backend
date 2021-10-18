@@ -1,7 +1,7 @@
-﻿using Flamer.Data.ViewModels.IPA;
-using Flammer.Model.Backend.Databases.Main.IPA;
-using Flammer.Model.Backend.Databases.Main.Projects;
-using Flammer.Pagination;
+﻿using Flamer.Model.Web.Databases.Main.IPA;
+using Flamer.Model.Web.Databases.Main.Projects;
+using Flamer.Model.ViewModel.IPA;
+using Flamer.Pagination;
 using SQLite;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -37,9 +37,8 @@ namespace Flamer.Data.Repositories.IPA
             var ps = new object[] { sysUserName, id };
 
             var tIpaBundle = nameof(IpaBundle);
-            var tProject = nameof(Project);
 
-            var findSql = $"SELECT b.* FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId WHERE p.SysUserName = ? AND b.Id = ?";
+            var findSql = $"SELECT b.* FROM {tIpaBundle} AS b WHERE b.SysUserName = ? AND b.Id = ?";
             var dbBundle = await connection.FindWithQueryAsync<IpaBundle>(findSql, args: ps);
 
             dbBundle.ProjectId = bundle.ProjectId;
@@ -61,15 +60,11 @@ namespace Flamer.Data.Repositories.IPA
             var ps = new object[] { sysUserName };
 
             var tIpaBundle = nameof(IpaBundle);
-            var tProject = nameof(Project);
 
             var inIds = $"('{string.Join("', '", ids)}')";
 
             var sql = $@"
-DELETE FROM {tIpaBundle} WHERE Id IN (
-    SELECT b.Id FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId
-        WHERE p.SysUserName = ? AND b.Id IN {inIds}
-)
+DELETE FROM {tIpaBundle} WHERE b.SysUserName = ? AND b.Id IN {inIds}
 ";
 
             return connection.ExecuteAsync(sql, ps);
@@ -105,7 +100,7 @@ DELETE FROM {tIpaBundle} WHERE Id IN (
                 ps.Add(id);
             }
 
-            var tmpSql = $@"SELECT {{0}} FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId WHERE p.SysUserName = ? AND {projectIdWhere} AND {idWhere}";
+            var tmpSql = $@"SELECT {{0}} FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId WHERE b.SysUserName = ? AND {projectIdWhere} AND {idWhere}";
 
             var countSql = string.Format(tmpSql, "COUNT(1)");
             var count = await connection.ExecuteScalarAsync<long>(countSql, ps.ToArray());
@@ -120,55 +115,82 @@ DELETE FROM {tIpaBundle} WHERE Id IN (
         /// <summary>
         /// 获取简单历史记录列表
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
         /// <param name="paging">分页</param>
         /// <param name="projectCode">所属项目代码</param>
+        /// <param name="sysUserName">所属用户名</param>
         /// <returns></returns>
-        public async Task<PagedList<IpaBundleHistoryVm>> GetHistoryList(string sysUserName, Paging paging,
-            string projectCode)
+        public async Task<PagedList<IpaBundleHistoryVm>> GetHistoryList(Paging paging,
+            string projectCode, string sysUserName = null)
         {
             var tIpaBundle = nameof(IpaBundle);
             var tProject = nameof(Project);
 
-            var ps = new List<object>() { sysUserName, projectCode };
+            var ps = new List<object>() { projectCode.ToLower() };
 
-            var tmpSql = $@"SELECT {{0}} FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId WHERE p.SysUserName = ? AND p.Code = ?";
+            var sysUserNameWhere = "1=1";
+            if (!string.IsNullOrEmpty(sysUserName))
+            {
+                sysUserNameWhere = "b.SysUserName = ?";
+                ps.Add(sysUserName);
+            }
+
+            var tmpSql = $@"SELECT {{0}} FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId WHERE LOWER(p.Code) = ? AND {sysUserNameWhere}";
 
             var countSql = string.Format(tmpSql, "COUNT(1)");
             var count = await connection.ExecuteScalarAsync<long>(countSql, ps.ToArray());
 
             var listSql = $@"
-{string.Format(tmpSql, $@"b.Id, b.CreateTime, b.Version, p.Name AS Title")}
+{string.Format(tmpSql, $@"b.Id, b.SysUserName, b.CreateTime, b.Version, p.Name AS Title")}
 {paging.PagingSql("b.CreateTime")}";
             var list = await connection.QueryAsync<IpaBundleHistoryVm>(listSql, ps.ToArray());
             return PagedList.Create(count, list);
         }
 
         /// <summary>
-        /// 根据项目代码查找
+        /// 根据Id查找
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
         /// <param name="projectCode">项目代码</param>
-        /// <param name="id">指定的id</param>
+        /// <param name="sysUserName">所属用户名</param>
         /// <returns></returns>
-        public Task<IpaBundleVm> GetByProjectCode(string sysUserName, string projectCode, string id)
+        public Task<string> GetId(string projectCode, string sysUserName = null)
         {
             var tIpaBundle = nameof(IpaBundle);
             var tProject = nameof(Project);
 
-            var ps = new List<object>() { sysUserName, projectCode.ToLower() };
+            var ps = new List<object>() { projectCode.ToLower() };
 
-            var idWhere = "1=1";
-            if (!string.IsNullOrEmpty(id))
+            var sysUserNameWhere = "1=1";
+            if (!string.IsNullOrEmpty(sysUserName))
             {
-                idWhere = "b.Id = ?";
-                ps.Add(id);
+                sysUserNameWhere = "LOWER(b.SysUserName) = ?";
+                ps.Add(sysUserName.ToLower());
             }
 
             var sql = $@"
-SELECT b.Id, b.ProjectId, b.CreateTime, b.SoftwarePackage, b.FullSizeImage, b.Version, b.Identifier, p.Name AS Title
+SELECT b.Id FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId
+WHERE LOWER(p.Code) = ? AND {sysUserNameWhere}
+ORDER BY b.CreateTime DESC
+LIMIT 1
+";
+            return connection.ExecuteScalarAsync<string>(sql, ps.ToArray());
+        }
+
+        /// <summary>
+        /// 根据Id查找
+        /// </summary>
+        /// <param name="id">指定的id</param>
+        /// <returns></returns>
+        public Task<IpaBundleVm> Get(string id)
+        {
+            var tIpaBundle = nameof(IpaBundle);
+            var tProject = nameof(Project);
+
+            var ps = new List<object>() { id };
+
+            var sql = $@"
+SELECT b.Id, b.ProjectId, p.Code AS ProjectCode, b.SysUserName, b.CreateTime, b.SoftwarePackage, b.FullSizeImage, b.Version, b.Identifier, p.Name AS Title, b.Env
 FROM {tIpaBundle} AS b INNER JOIN {tProject} AS p ON p.Id = b.ProjectId
-WHERE p.SysUserName = ? AND LOWER(p.Code) = ? AND {idWhere}
+WHERE b.Id = ?
 ORDER BY b.CreateTime DESC
 ";
 
@@ -214,21 +236,27 @@ ORDER BY b.CreateTime DESC
         /// <summary>
         /// 获取简单历史记录列表
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
         /// <param name="paging">分页</param>
         /// <param name="projectCode">所属项目代码</param>
+        /// <param name="sysUserName">所属用户名</param>
         /// <returns></returns>
-        Task<PagedList<IpaBundleHistoryVm>> GetHistoryList(string sysUserName, Paging paging,
-            string projectCode);
+        Task<PagedList<IpaBundleHistoryVm>> GetHistoryList(Paging paging,
+            string projectCode, string sysUserName = null);
 
         /// <summary>
-        /// 根据项目代码查找
+        /// 根据Id查找
         /// </summary>
-        /// <param name="sysUserName">所属用户名</param>
         /// <param name="projectCode">项目代码</param>
+        /// <param name="sysUserName">所属用户名</param>
+        /// <returns></returns>
+        Task<string> GetId(string projectCode, string sysUserName = null);
+
+        /// <summary>
+        /// 根据Id查找
+        /// </summary>
         /// <param name="id">指定的id</param>
         /// <returns></returns>
-        Task<IpaBundleVm> GetByProjectCode(string sysUserName, string projectCode, string id);
+        Task<IpaBundleVm> Get(string id);
     }
 
 }

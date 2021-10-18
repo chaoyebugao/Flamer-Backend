@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Flammer.Service.Email
+namespace Flamer.Service.Email
 {
     public static class DependencyExtensions
     {

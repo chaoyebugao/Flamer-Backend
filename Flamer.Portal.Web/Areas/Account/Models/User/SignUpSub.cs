@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Account.Models.User
+namespace Flamer.Portal.Web.Areas.Account.Models.User
 {
     public class SignUpSub
     {

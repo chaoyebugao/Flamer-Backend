@@ -1,10 +1,10 @@
-﻿using Flammer.Pagination;
+﻿using Flamer.Pagination;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.IPA.Models.Home
+namespace Flamer.Portal.Web.Areas.IPA.Models.Home
 {
     public class EditSub
     {

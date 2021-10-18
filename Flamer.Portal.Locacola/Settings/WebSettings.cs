@@ -24,6 +24,6 @@ namespace Flamer.Portal.LocaCola.Settings
         /// <summary>
         /// 主服务请求地址
         /// </summary>
-        public string BaseUrl { get; set; }
+        public string BaseAddress { get; set; }
     }
 }

@@ -1,12 +1,12 @@
-﻿using Flammer.Portal.Web.Areas.Account.Models.User;
-using Flammer.Portal.Web.Attributes;
-using Flammer.Service.Domain.User;
-using Microsoft.AspNetCore.Http;
+﻿using Flamer.Portal.Web.Areas.Account.Models.User;
+using Flamer.Portal.Web.Attributes;
+using Flamer.Service.Domain.User;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using NLog;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Account.Controllers
+namespace Flamer.Portal.Web.Areas.Account.Controllers
 {
     [Area("account")]
     [Route("api/[area]/[controller]/[action]")]
@@ -63,13 +63,12 @@ namespace Flammer.Portal.Web.Areas.Account.Controllers
         {
             var ticket = await userService.LoginAsync(sub.LoginName, sub.Password);
 
-            return Data(new
+            return Data(new LoginRet
             {
-                ticket.Token,
+                Token = ticket.Token,
                 ExpireAt = ticket.ExpireAt.ToUnixTimeSeconds(),
             });
         }
-
 
         /// <summary>
         /// 注销登录
@@ -102,6 +101,13 @@ namespace Flammer.Portal.Web.Areas.Account.Controllers
             var info = await userService.GetInfoAsync(SysUserName);
 
             return Data(info);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetSelectList()
+        {
+            var list = await userService.GetListForSelect();
+            return Data(list);
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿using Flammer.Utility.Base62;
+﻿using Flamer.Utility.Base62;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Flammer.Utility.Security
+namespace Flamer.Utility.Security
 {
     /// <summary>
     /// SHA1哈希

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace Flammer.Utility.Base62
+namespace Flamer.Utility.Base62
 {
     /// <summary>
     /// Utility that read and write bits in byte array

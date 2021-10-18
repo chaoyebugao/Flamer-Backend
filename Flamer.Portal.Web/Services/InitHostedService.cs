@@ -3,6 +3,7 @@ using Flamer.Service.OSS.Extensions;
 using Flamer.Service.OSS.Services;
 using Microsoft.Extensions.Hosting;
 using Minio;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace Flamer.Portal.Web.Services
 {
     public class InitHostedService : IHostedService
     {
+        private readonly ILogger logger = LogManager.GetCurrentClassLogger();
+
         private readonly IMinioService minioService;
 
         public InitHostedService(IMinioService minioService)
@@ -24,15 +27,15 @@ namespace Flamer.Portal.Web.Services
         {
             Action<Task> createContinue = t =>
             {
-                Console.WriteLine(t.Exception);
+                logger.Error(t.Exception);
                 //TODO:日志
             };
 
             Task.Run(async () =>
             {
-                await minioService.CreateBucket(Buckets.SysUser, false);
+                await minioService.CreateBucket(Buckets.SysUser, false, MinioChannels.Web);
 
-                await minioService.CreateBucket(Buckets.Public, true);
+                await minioService.CreateBucket(Buckets.Public, true, MinioChannels.Web);
             }).ContinueWith(createContinue, TaskContinuationOptions.OnlyOnFaulted);
 
             return Task.CompletedTask;

@@ -1,4 +1,4 @@
-﻿using Flammer.Pagination;
+﻿using Flamer.Pagination;
 using System.Collections.Generic;
 
 namespace Flamer.Model.Result.WebResults
@@ -11,7 +11,7 @@ namespace Flamer.Model.Result.WebResults
         /// <summary>
         /// 阻止创建实例
         /// </summary>
-        private PagedRet()
+        public PagedRet()
         {
 
         }
@@ -34,7 +34,7 @@ namespace Flamer.Model.Result.WebResults
     /// <typeparam name="T">分页数据类型</typeparam>
     public class PagedRet<T> : BaseRet
     {
-        internal PagedRet(PagedList<T> pagedList)
+        public PagedRet(PagedList<T> pagedList)
         {
             this.Total = pagedList.Total;
             this.Items = pagedList.List;
@@ -43,11 +43,28 @@ namespace Flamer.Model.Result.WebResults
         /// <summary>
         /// 数据
         /// </summary>
-        public long Total { get; private set; }
+        public long Total { get; set; }
 
         /// <summary>
         /// 数据
         /// </summary>
-        public IEnumerable<T> Items { get; private set; }
+        public IEnumerable<T> Items { get; set; }
+    }
+
+    /// <summary>
+    /// 分页结果
+    /// </summary>
+    /// <typeparam name="T">分页数据类型</typeparam>
+    public class PagedRetNeat<T>
+    {
+        /// <summary>
+        /// 数据
+        /// </summary>
+        public long Total { get; set; }
+
+        /// <summary>
+        /// 数据
+        /// </summary>
+        public IEnumerable<T> Items { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Flammer.Portal.Web.Areas.Project.Models.Home
+namespace Flamer.Portal.Web.Areas.Project.Models.Home
 {
     public class RemoveSub
     {

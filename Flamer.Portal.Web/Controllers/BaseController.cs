@@ -1,10 +1,7 @@
-﻿using Flamer.Model.Result.WebResults;
-using Flammer.Pagination;
-using Flammer.Service.Domain.User;
-using Microsoft.AspNetCore.Mvc;
+﻿using Flamer.Service.Domain.User;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Flammer.Portal.Web
+namespace Flamer.Portal.Web
 {
     /// <summary>
     /// 通用基类

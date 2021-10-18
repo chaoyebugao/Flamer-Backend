@@ -4,22 +4,67 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>LocaCola</AssemblyName>
-    <ApplicationIcon />
+    <ApplicationIcon>logo.ico</ApplicationIcon>
     <StartupObject />
+    <Version>1.1.0</Version>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="nlog.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Flamer.Model.ViewModel\Account\UserInfo.cs" Link="Models\Account\User\UserInfo.cs" />
+    <Compile Include="..\Flamer.Model.ViewModel\Blob\AccessVm.cs" Link="Models\Blob\Oss\AccessVm.cs" />
+    <Compile Include="..\Flamer.Model.ViewModel\Blob\ImageProxyModel.cs" Link="Models\Blob\Oss\ImageProxyModel.cs" />
+    <Compile Include="..\Flamer.Model.ViewModel\Blob\OssInfo.cs" Link="Models\Blob\Oss\OssInfo.cs" />
+    <Compile Include="..\Flamer.Model.ViewModel\Blob\UploadMetaVm.cs" Link="Models\Blob\Minio\UploadMetaVm.cs" />
+    <Compile Include="..\Flamer.Portal.LocalWeb\Areas\Blob\Models\Oss\PresignedUrlSub.cs" Link="Models\Blob\LocalOss\PresignedUrlSub.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Areas\Account\Models\User\LoginRet.cs" Link="Models\Account\User\LoginRet.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Areas\Account\Models\User\LoginSub.cs" Link="Models\Account\User\LoginSub.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Areas\Blob\Models\Oss\GetAccessSub.cs" Link="Models\Blob\Oss\GetAccessSub.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Areas\Blob\Models\Oss\SaveUploadSub.cs" Link="Models\Blob\Oss\SaveUploadSub.cs" />
+    <Compile Include="..\Flamer.Portal.Web\Areas\IPA\Models\Home\AddSub.cs" Link="Models\IPA\Home\AddSub.cs" />
+    <Compile Include="..\Flamer.Service.OSS\Extensions\MinioSettingCollection.cs" Link="Models\Blob\Minio\MinioSettingCollection.cs" />
+    <Compile Include="..\Flamer.Service.OSS\Extensions\MinioSettings.cs" Link="Models\Blob\Minio\MinioSettings.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="nlog.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="5.0.0" />
+    <PackageReference Include="Minio" Version="3.1.13" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="1.7.3" />
+    <PackageReference Include="plist-cil" Version="2.2.0" />
+    <PackageReference Include="SharpZipLib" Version="1.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Flamer.Model.Result\Flamer.Model.Result.csproj" />
+    <ProjectReference Include="..\Flamer.Utility\Flamer.Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\Account\User\" />
+    <Folder Include="Models\Blob\LocalOss\" />
+    <Folder Include="Models\IPA\Home\" />
+    <Folder Include="Utils\" />
   </ItemGroup>
 
 </Project>

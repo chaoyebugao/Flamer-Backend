@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Flammer.Portal.Web.Areas.Db.Models.Home
+namespace Flamer.Portal.Web.Areas.Db.Models.Home
 {
     public class RemoveSchemeSub
     {

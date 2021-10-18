@@ -1,19 +1,21 @@
 ﻿using Flamer.Data.Repositories.Account;
+using Flamer.Model.Web.Databases.Main.Account;
+using Flamer.Model.ViewModel.Account;
 using Flamer.Service.Common.Cache;
-using Flamer.Service.Domain.Account.ViewModels;
-using Flammer.Model.Backend.Databases.Main.Account;
-using Flammer.Service.Email;
-using Flammer.Utility.Base62;
-using Flammer.Utility.Extensions;
-using Flammer.Utility.Security;
-using Flammer.Utility.Text;
+using Flamer.Service.Email;
+using Flamer.Utility.Base62;
+using Flamer.Utility.Extensions;
+using Flamer.Utility.Security;
+using Flamer.Utility.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using Flamer.Model.ViewModel;
 
-namespace Flammer.Service.Domain.User
+namespace Flamer.Service.Domain.User
 {
     public class UserService : IUserService
     {
@@ -197,7 +199,7 @@ namespace Flammer.Service.Domain.User
 
             await ticketRepository.Add(ticket);
 
-            memoryCache.Set(CacheKeys.Token, ticket, new MemoryCacheEntryOptions()
+            memoryCache.Set(CacheKeys.Token(ticket.Token), ticket, new MemoryCacheEntryOptions()
             {
                 SlidingExpiration = TimeSpan.FromMinutes(30),
             });
@@ -221,7 +223,7 @@ namespace Flammer.Service.Domain.User
         /// <param name="token"></param>
         public async Task VerifyTokenAsync(string token)
         {
-            var hasCache = memoryCache.TryGetValue(CacheKeys.Token, out Ticket ticket);
+            var hasCache = memoryCache.TryGetValue(CacheKeys.Token(token), out Ticket ticket);
             if (!hasCache)
             {
                 ticket = await ticketRepository.Get(token);
@@ -231,7 +233,7 @@ namespace Flammer.Service.Domain.User
                     throw new BizErrorException("无效的登录");
                 }
 
-                memoryCache.Set(CacheKeys.Token, ticket, new MemoryCacheEntryOptions()
+                memoryCache.Set(CacheKeys.Token(token), ticket, new MemoryCacheEntryOptions()
                 {
                     SlidingExpiration = TimeSpan.FromMinutes(30),
                 });
@@ -272,7 +274,7 @@ namespace Flammer.Service.Domain.User
         /// <returns></returns>
         public async Task<string> GetNameByTokenAsync(string token)
         {
-            var hasCache = memoryCache.TryGetValue(CacheKeys.TokenSysUserName, out string sysUserName);
+            var hasCache = memoryCache.TryGetValue(CacheKeys.TokenSysUserName(token), out string sysUserName);
             if (!hasCache)
             {
                 var ticket = await ticketRepository.Get(token);
@@ -283,13 +285,23 @@ namespace Flammer.Service.Domain.User
 
                 sysUserName = ticket.SysUserName;
 
-                memoryCache.Set(CacheKeys.TokenSysUserName, sysUserName, new MemoryCacheEntryOptions()
+                memoryCache.Set(CacheKeys.TokenSysUserName(token), sysUserName, new MemoryCacheEntryOptions()
                 {
                     SlidingExpiration = TimeSpan.FromMinutes(30),
                 });
             }
 
             return sysUserName;
+        }
+
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        public Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null)
+        {
+            return userRepository.GetListForSelect(keyword);
         }
     }
 
@@ -349,6 +361,13 @@ namespace Flammer.Service.Domain.User
         /// <param name="token">令牌</param>
         /// <returns></returns>
         Task<string> GetNameByTokenAsync(string token);
+
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null);
     }
 
 }

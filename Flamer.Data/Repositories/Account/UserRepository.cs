@@ -1,5 +1,8 @@
-﻿using Flammer.Model.Backend.Databases.Main.Account;
+﻿using Flamer.Model.ViewModel;
+using Flamer.Model.Web.Databases.Main.Account;
 using SQLite;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Flamer.Data.Repositories.Account
@@ -117,7 +120,32 @@ namespace Flamer.Data.Repositories.Account
         public Task<SysUser> GetByEmail(string email, string passwordHash)
         {
             return connection.Table<SysUser>().FirstOrDefaultAsync(m => m.Email.ToLower() == email.ToLower() && m.PasswordHash == passwordHash);
+        }
 
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        public async Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null)
+        {
+            var qry = connection.Table<SysUser>();
+
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                qry = qry.Where(m => m.Name.Contains(keyword));
+            }
+
+            var count = await qry.CountAsync();
+            var list = await qry.OrderByDescending(m => m.CreateTime).ToListAsync();
+
+            var vmList = list.Select(m => new SelectVm()
+            {
+                Label = m.Name,
+                Value = m.Name,
+            });
+
+            return vmList;
         }
     }
 
@@ -191,6 +219,13 @@ namespace Flamer.Data.Repositories.Account
         /// <param name="passwordHash"></param>
         /// <returns></returns>
         Task<SysUser> GetByEmail(string email, string passwordHash);
+
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null);
     }
 
 }

@@ -1,13 +1,13 @@
 ﻿using Flamer.Portal.Web.Extentions;
 using Flamer.Service.ImageProxy.Extensions;
 using Flamer.Service.OSS.Extensions;
-using Flammer.Data;
-using Flammer.Service.Domain;
-using Flammer.Service.Email;
+using Flamer.Data;
+using Flamer.Service.Domain;
+using Flamer.Service.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Flammer.Portal.Web.Extentions
+namespace Flamer.Portal.Web.Extentions
 {
     public static class ServiceCollector
     {

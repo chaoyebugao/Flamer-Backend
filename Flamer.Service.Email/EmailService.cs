@@ -1,10 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MimeKit;
 using MimeKit.Text;
+using NLog;
 using System;
 using System.Threading.Tasks;
 
-namespace Flammer.Service.Email
+namespace Flamer.Service.Email
 {
     public interface IEmailService
     {
@@ -19,6 +20,8 @@ namespace Flammer.Service.Email
 
     public class EmailService : IEmailService
     {
+        private readonly ILogger logger = LogManager.GetCurrentClassLogger();
+
         private readonly IConfiguration configuration;
 
         public EmailService(IConfiguration configuration)
@@ -76,7 +79,7 @@ namespace Flammer.Service.Email
                 client.Send(message);
                 //断开
                 client.Disconnect(true);
-                Console.WriteLine("发送邮件成功");
+                logger.Info("发送邮件成功");
 
             });
         }

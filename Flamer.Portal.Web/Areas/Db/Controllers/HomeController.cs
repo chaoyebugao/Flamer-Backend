@@ -1,14 +1,14 @@
-﻿using Flammer.Data.ViewModels.Db;
-using Flammer.Pagination;
-using Flammer.Portal.Web.Areas.Db.Models.Home;
-using Flammer.Portal.Web.Attributes;
-using Flammer.Service.Domain.Db;
+﻿using Flamer.Model.ViewModel.Db;
+using Flamer.Pagination;
+using Flamer.Portal.Web.Areas.Db.Models.Home;
+using Flamer.Portal.Web.Attributes;
+using Flamer.Service.Domain.Db;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace Flammer.Portal.Web.Areas.Db.Controllers
+namespace Flamer.Portal.Web.Areas.Db.Controllers
 {
     [Area("db")]
     [CheckTicket]

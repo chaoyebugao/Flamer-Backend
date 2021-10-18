@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Flammer.Utility.Extensions
+namespace Flamer.Utility.Extensions
 {
     /// <summary>
     /// Guid扩展

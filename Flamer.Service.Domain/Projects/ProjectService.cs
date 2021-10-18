@@ -1,13 +1,13 @@
 ﻿using Flamer.Data.Repositories.Db;
 using Flamer.Data.Repositories.Projects;
-using Flamer.Data.ViewModels.Projects;
-using Flammer.Model.Backend.Databases.Main.Projects;
-using Flammer.Pagination;
-using Flammer.Service;
+using Flamer.Model.Web.Databases.Main.Projects;
+using Flamer.Model.ViewModel.Projects;
+using Flamer.Pagination;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Flamer.Model.ViewModel;
 
 namespace Flamer.Service.Domain.Projects
 {
@@ -23,9 +23,9 @@ namespace Flamer.Service.Domain.Projects
             this.dbSchemeRepository = dbSchemeRepository;
         }
 
-        public async Task Add(string sysUserName, string code, string name, string logo)
+        public async Task Add(string creator, string code, string name, string logo)
         {
-            var codeExisted = await projectRepository.CodeExists(sysUserName, code);
+            var codeExisted = await projectRepository.CodeExists(creator, code);
             if (codeExisted)
             {
                 throw new Exception("已存在的代码");
@@ -37,16 +37,16 @@ namespace Flamer.Service.Domain.Projects
                 CreateTime = DateTimeOffset.UtcNow,
                 Code = code,
                 Name = name,
-                SysUserName = sysUserName,
+                Creator = creator,
                 Logo = logo,
             };
 
             await projectRepository.Add(project);
         }
 
-        public async Task Edit(string sysUserName, string id, string code, string name, string logo)
+        public async Task Edit(string id, string code, string name, string logo)
         {
-            var codeExisted = await projectRepository.CodeExists(sysUserName, code, id);
+            var codeExisted = await projectRepository.CodeExists(code, id);
             if (codeExisted)
             {
                 throw new Exception("已存在的代码");
@@ -56,14 +56,13 @@ namespace Flamer.Service.Domain.Projects
             {
                 Code = code,
                 Name = name,
-                SysUserName = sysUserName,
                 Logo = logo,
             };
 
-            await projectRepository.Edit(sysUserName, id, project);
+            await projectRepository.Edit(id, project);
         }
 
-        public async Task Remove(string sysUserName, IEnumerable<string> projectIds)
+        public async Task Remove(IEnumerable<string> projectIds)
         {
             var existedIds = await dbSchemeRepository.GetList(projectIds);
             if (existedIds.Count() != 0)
@@ -71,19 +70,29 @@ namespace Flamer.Service.Domain.Projects
                 throw new BizErrorException("项目仍关联有数据库");
             }
 
-            await projectRepository.Remove(sysUserName, projectIds);
+            await projectRepository.Remove(projectIds);
         }
 
         /// <summary>
         /// 获取列表
         /// </summary>
-        /// <param name="sysUserName"></param>
         /// <param name="paging"></param>
+        /// <param name="creator"></param>
         /// <param name="keyword"></param>
         /// <returns></returns>
-        public Task<PagedList<ProjectVm>> GetList(string sysUserName, Paging paging, string keyword)
+        public Task<PagedList<ProjectVm>> GetList(Paging paging, string creator = null, string keyword = null)
         {
-            return projectRepository.GetList(sysUserName, paging, keyword);
+            return projectRepository.GetList(paging, creator, keyword);
+        }
+
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        public Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null)
+        {
+            return projectRepository.GetListForSelect(keyword);
         }
     }
 
@@ -92,18 +101,25 @@ namespace Flamer.Service.Domain.Projects
     {
         Task Add(string sysUserName, string code, string name, string logo);
 
-        Task Edit(string sysUserName, string id, string code, string name, string logo);
+        Task Edit(string id, string code, string name, string logo);
 
-        Task Remove(string sysUserName, IEnumerable<string> projectIds);
+        Task Remove(IEnumerable<string> projectIds);
 
         /// <summary>
         /// 获取列表
         /// </summary>
-        /// <param name="sysUserName"></param>
         /// <param name="paging"></param>
+        /// <param name="creator"></param>
         /// <param name="keyword"></param>
         /// <returns></returns>
-        Task<PagedList<ProjectVm>> GetList(string sysUserName, Paging paging, string keyword);
+        Task<PagedList<ProjectVm>> GetList(Paging paging, string creator = null, string keyword = null);
+
+        /// <summary>
+        /// 获取下拉列表
+        /// </summary>
+        /// <param name="keyword"></param>
+        /// <returns></returns>
+        Task<IEnumerable<SelectVm>> GetListForSelect(string keyword = null);
     }
 
 }

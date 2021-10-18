@@ -2,13 +2,13 @@
 using Flamer.Service.Domain.IPA;
 using Flamer.Service.Domain.Blob;
 using Flamer.Service.Domain.Projects;
-using Flammer.Service.Domain.Db;
-using Flammer.Service.Domain.User;
+using Flamer.Service.Domain.Db;
+using Flamer.Service.Domain.User;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Yitter.IdGenerator;
 
-namespace Flammer.Service.Domain
+namespace Flamer.Service.Domain
 {
     public static class DependencyExtensions
     {

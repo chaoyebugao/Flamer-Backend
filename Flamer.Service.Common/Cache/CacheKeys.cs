@@ -14,11 +14,17 @@ namespace Flamer.Service.Common.Cache
         /// <summary>
         /// 令牌
         /// </summary>
-        public static string Token { get { return "_Token"; } }
+        public static string Token(string key)
+        {
+            return $"Token_{key}";
+        }
 
         /// <summary>
         /// 令牌系统用户id对应
         /// </summary>
-        public static string TokenSysUserName { get { return "_TokenSysUserName"; } }
+        public static string TokenSysUserName(string key)
+        {
+            return $"TokenSysUserName_{key}";
+        }
     }
 }

@@ -1,15 +1,17 @@
 ﻿using Flamer.Data.Repositories.Blob;
-using Flamer.Data.ViewModels.OSS;
+using Flamer.Model.Web.Databases.Main.Blob;
+using Flamer.Model.ViewModel.Blob;
 using Flamer.Service.Domain.Blob.CONST;
-using Flamer.Service.Domain.Blob.Models;
 using Flamer.Service.Domain.Blob.ViewModels;
 using Flamer.Service.Domain.ImageProxy;
 using Flamer.Service.OSS.Extensions;
 using Flamer.Service.OSS.Services;
-using Flammer.Model.Backend.Databases.Main.Blob;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Flamer.Utility.Security;
+using Newtonsoft.Json;
+using System.Text;
 
 namespace Flamer.Service.Domain.Blob
 {
@@ -18,16 +20,18 @@ namespace Flamer.Service.Domain.Blob
         private readonly IMinioService minioService;
         private readonly IOssFileRepository ossFileRepository;
         private readonly IImageProxyService imageProxyService;
-
+        private readonly MinioSettingCollection minioSettingCollection;
         private const int EXPIRES_SECONDS = 172800;
 
         public OssService(IMinioService minioService,
             IOssFileRepository ossFileRepository,
-            IImageProxyService imageProxyService)
+            IImageProxyService imageProxyService,
+            MinioSettingCollection minioSettingCollection)
         {
             this.minioService = minioService;
             this.ossFileRepository = ossFileRepository;
             this.imageProxyService = imageProxyService;
+            this.minioSettingCollection = minioSettingCollection;
         }
 
         /// <summary>
@@ -91,7 +95,13 @@ namespace Flamer.Service.Domain.Blob
                         //可公开访问
                         bucket = Buckets.Public;
                         objPrePath = category.ToString();
-
+                        break;
+                    }
+                case Categories.IpaBundle:
+                    {
+                        //可公开访问
+                        bucket = Buckets.Public;
+                        objPrePath = category.ToString();
 
                         break;
                     }
@@ -118,13 +128,15 @@ namespace Flamer.Service.Domain.Blob
         /// <param name="file">OSS文件</param>
         /// <param name="urlBrowsing">是否需要访问URL</param>
         /// <param name="imageProxy">imageproxy图像处理模型</param>
+        /// <param name="minioChannel">Minio实例通道</param>
         /// <returns></returns>
-        private async Task<OssInfo> GetUrl(OssFile file, bool urlBrowsing, ImageProxyModel imageProxy = null)
+        private async Task<OssInfo> GetUrl(OssFile file, bool urlBrowsing, ImageProxyModel imageProxy = null, MinioChannels minioChannel = MinioChannels.Web)
         {
             var category = System.Enum.Parse<Categories>(file.Category);
 
             var isPublic = false;
             string browseUrl = null;
+            var isOssUrl = false;   //是否使用OSS浏览地址
 
             switch (category)
             {
@@ -133,11 +145,28 @@ namespace Flamer.Service.Domain.Blob
                         isPublic = true;
                         break;
                     }
+                case Categories.IpaBundle:
+                    {
+                        isPublic = true;
+                        isOssUrl = true;
+                        break;
+                    }
             }
 
             if (urlBrowsing)
             {
-                browseUrl = await imageProxyService.BuildUrl(isPublic, file.BucketName, file.ObjectName, imageProxy);
+                if (isPublic && isOssUrl)
+                {
+                    var (bucketName, objectName, _) = BuildMeta(file.SysUserName, file.Hash, category, file.OriginalFileName);
+                    var minioSettings = minioService.GetSettings(minioChannel);
+
+                    browseUrl = $"{minioSettings.Address}/{bucketName}/{objectName}";
+                }
+                else
+                {
+                    browseUrl = await imageProxyService.BuildUrl(isPublic, file.BucketName, file.ObjectName, imageProxy);
+                }
+
             }
 
             return new OssInfo()
@@ -154,35 +183,17 @@ namespace Flamer.Service.Domain.Blob
         /// <param name="hash">文件sha1哈希</param>
         /// <param name="urlBrowsing">是否需要访问URL</param>
         /// <param name="imageProxy">imageproxy图像处理模型</param>
+        /// <param name="minioChannel"></param>
         /// <returns></returns>
-        public async Task<OssInfo> GetUrl(string hash, bool urlBrowsing, ImageProxyModel imageProxy = null)
+        public async Task<OssInfo> GetUrl(string hash, bool urlBrowsing, ImageProxyModel imageProxy = null, MinioChannels minioChannel = MinioChannels.Web)
         {
             var file = await ossFileRepository.Get(hash);
             if (file == null)
             {
                 return null;
             }
-            var ossInfo = await GetUrl(file, urlBrowsing, imageProxy);
+            var ossInfo = await GetUrl(file, urlBrowsing, imageProxy, minioChannel);
             return ossInfo;
-        }
-
-        /// <summary>
-        /// 是否要包括本地局域网MinIO
-        /// </summary>
-        /// <param name="category"></param>
-        /// <returns></returns>
-        private bool IsIncludeLocalMinio(Categories category)
-        {
-            var includeLocalMinio = false;
-            switch (category)
-            {
-                case Categories.IpaBundle:
-                    {
-                        includeLocalMinio = true;
-                        break;
-                    }
-            }
-            return includeLocalMinio;
         }
 
         /// <summary>
@@ -230,6 +241,40 @@ namespace Flamer.Service.Domain.Blob
                 OssInfo = ossInfo,
                 UploadUrls = new string[] { presignedPutUrl },
             };
+        }
+
+        /// <summary>
+        /// 获取Minio文件访问/上传信息
+        /// </summary>
+        /// <param name="sysUserName">所属用户名</param>
+        /// <param name="hash">文件哈希</param>
+        /// <param name="category">分类</param>
+        /// <param name="originalFileName">原始文件名</param>
+        /// <param name="imageProxy">imageproxy图像处理模型</param>
+        /// <returns></returns>
+        public async Task<UploadMetaVm> GetUploadMeta(string sysUserName, string hash, Categories category,
+            string originalFileName, ImageProxyModel imageProxy = null)
+        {
+            var urlBrowsing = IsUrlBrowsing(category);
+            var ossInfo = await GetUrl(hash, urlBrowsing, imageProxy);
+
+            var vm = new UploadMetaVm()
+            {
+                OssInfo = ossInfo,
+            };
+
+            if (ossInfo == null)
+            {
+                var (bucketName, objectName, _) = BuildMeta(sysUserName, hash, category, originalFileName);
+                vm.BucketName = bucketName;
+                vm.ObjectName = objectName;
+
+                var minioSettingCollectionStr = JsonConvert.SerializeObject(minioSettingCollection);
+                var minioSettingCollectionBytes = Encoding.UTF8.GetBytes(minioSettingCollectionStr);
+                vm.MinIOSettings = minioSettingCollectionBytes.Encrypt("Yg25ggqhiIUWUq4iLsYqOZScna0b7gDW", "xJuu0M1BJx95vzfH");
+            }
+
+            return vm;
         }
 
         /// <summary>
@@ -320,8 +365,9 @@ namespace Flamer.Service.Domain.Blob
         /// <param name="hash">文件sha1哈希</param>
         /// <param name="urlBrowsing">是否需要访问URL</param>
         /// <param name="imageProxy">imageproxy图像处理模型</param>
+        /// <param name="minioChannel">Minio实例通道</param>
         /// <returns></returns>
-        Task<OssInfo> GetUrl(string hash, bool urlBrowsing, ImageProxyModel imageProxy = null);
+        Task<OssInfo> GetUrl(string hash, bool urlBrowsing, ImageProxyModel imageProxy = null, MinioChannels minioChannel = MinioChannels.Web);
 
         /// <summary>
         /// 获取文件访问/上传信息
@@ -333,6 +379,18 @@ namespace Flamer.Service.Domain.Blob
         /// <param name="imageProxy">imageproxy图像处理模型</param>
         /// <returns></returns>
         Task<AccessVm> GetAccess(string sysUserName, string hash, Categories category,
+            string originalFileName, ImageProxyModel imageProxy = null);
+
+        /// <summary>
+        /// 获取Minio文件访问/上传信息
+        /// </summary>
+        /// <param name="sysUserName">所属用户名</param>
+        /// <param name="hash">文件哈希</param>
+        /// <param name="category">分类</param>
+        /// <param name="originalFileName">原始文件名</param>
+        /// <param name="imageProxy">imageproxy图像处理模型</param>
+        /// <returns></returns>
+        Task<UploadMetaVm> GetUploadMeta(string sysUserName, string hash, Categories category,
             string originalFileName, ImageProxyModel imageProxy = null);
 
         /// <summary>

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Flammer.Utility.Text
+namespace Flamer.Utility.Text
 {
     /// <summary>
     /// 字符串

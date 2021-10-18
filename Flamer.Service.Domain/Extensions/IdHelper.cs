@@ -1,4 +1,4 @@
-﻿using Flammer.Utility.Base62;
+﻿using Flamer.Utility.Base62;
 using System;
 using System.Collections.Generic;
 using System.Linq;
