@@ -17,7 +17,7 @@ namespace Flamer.Service.OSS.Extensions
         public MinioSettings Inner { get; set; }
 
         /// <summary>
-        /// 外网（当需要获取预签名URL时）
+        /// 公网（当需要获取预签名URL时）
         /// </summary>
         public MinioSettings Web { get; set; }
 
@@ -34,7 +34,7 @@ namespace Flamer.Service.OSS.Extensions
         Inner = 0,
 
         /// <summary>
-        /// 外网
+        /// 公网
         /// </summary>
         Web = 1,
     }

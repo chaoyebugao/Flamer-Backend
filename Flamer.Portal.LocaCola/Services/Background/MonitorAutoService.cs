@@ -6,12 +6,16 @@ using Flamer.Service.OSS.Extensions;
 using Flamer.Utility.Security;
 using Flamer.Utility.Wroker;
 using ICSharpCode.SharpZipLib.Zip;
+using Microsoft.Build.Construction;
 using Microsoft.Extensions.Hosting;
 using Minio;
 using NLog;
+using Polly;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -63,42 +67,72 @@ namespace Flamer.Portal.LocaCola.Services.Background
 
         private const string BLOBCATEGORY = "IpaBundle";
         private string LocalWebAddr;
-        private Task MonitorWork()
+        private async Task MonitorWork()
         {
-            return Retry.DoAscending(async () =>
+            if (ipaSettingCollection == null || ipaSettingCollection.Count == 0)
             {
-                if (WebProcessor.LoginRet == null || string.IsNullOrEmpty(WebProcessor.SysUserName))
-                {
-                    throw new Exception("未登录的操作");
-                }
+                logger.Info($"无任何监听配置项");
+                return;
+            }
 
-                LocalWebAddr = await ossService.GetLocalWebAddr();
-
-                //立即检查上传
-                await CheckAllUpload();
-
-                //监听文件变化
-                Watch();
-            }, int.MaxValue, onSuccess: () =>
+            //检查登录，重试机制加持
+            Policy.HandleResult(true).WaitAndRetryForever(time => TimeSpan.FromSeconds(2), (ret, ts) =>
             {
-                logger.Info("检查监控完毕");
-            }, onTryFailed: (ex, delaySeconds) =>
+#if DEBUG
+                logger.Debug("无登录凭证");
+#endif
+            })
+                .Execute(() =>
             {
-                logger.Warn($"监控不成功，{delaySeconds}秒后重试:{Environment.NewLine}{ex}");
+                return WebProcessor.LoginRet == null || string.IsNullOrEmpty(WebProcessor.SysUserName);
             });
 
-        }
+            //获取局域网地址，重试机制加持
+            await Policy.Handle<Exception>().WaitAndRetryForeverAsync(time => TimeSpan.FromSeconds(5), (ex, ts) =>
+            {
+                logger.Warn($"获取局域网地址失败，{ts.TotalSeconds}秒后重试:{Environment.NewLine}{ex}");
+            })
+                .ExecuteAsync(async () =>
+            {
+                LocalWebAddr = await ossService.GetLocalWebAddr();
+            });
 
-        private Task CheckAllUpload()
-        {
-            var tasks = ipaSettingCollection.Select(m => CheckUpload(m));
-            return Task.WhenAll(tasks);
+            ipaWatchers = new FileSystemWatcher[ipaSettingCollection.Count];
+
+            //检查目录是否存在，重试机制加持
+            var checkDirectoryPlc = Policy.HandleResult(false).WaitAndRetryForever((time, ctx) =>
+            {
+                return TimeSpan.FromSeconds(12);
+            }, (ret, ts, ctx) =>
+            {
+#if DEBUG
+                var directory = ctx.ContainsKey("Directory") ? ctx["Directory"] : null;
+                logger.Debug($"目录不存在:{directory}");
+#endif
+            });
+
+            var tasks = ipaSettingCollection.Select(settings =>
+            {
+                return Task.Factory.StartNew(async () =>
+                {
+                    checkDirectoryPlc.Execute(ctx => Directory.Exists(settings.Directory), new Context()
+                    {
+                        { "Directory",  settings.Directory}
+                    });
+
+                    Watch(settings);
+
+                    await CheckUpload(settings);
+                }, TaskCreationOptions.LongRunning);
+            });
+
+            await Task.WhenAll(tasks);
         }
 
         private async Task CheckUpload(IpaSettings settings)
         {
             var path = Path.Combine(settings.Directory, settings.File);
-            logger.Info($"{settings}-正在检查");
+
             if (!File.Exists(path))
             {
                 logger.Info($"{settings}-ipa不存在，略过");
@@ -124,65 +158,78 @@ namespace Flamer.Portal.LocaCola.Services.Background
                 Hash = hash,
                 OriginalFileName = fileInfo.Name,
             });
-            if (uploadMetaVm.OssInfo == null)
+            if (uploadMetaVm.OssInfo != null)
             {
-                if (uploadMetaVm.MinIOSettings_Decrypt == null)
-                {
-                    logger.Error($"{settings}-上传配置为空");
-                    return;
-                }
+                //已存在记录
+                return;
+            }
 
-                var tmpPath = $"tmp/{settings.ProjectCode}/";
-                if (Directory.Exists(tmpPath))
-                {
-                    Directory.Delete(tmpPath, true);
-                }
-                Directory.CreateDirectory(tmpPath);
-                var infoPlistZipPath = $"Payload/{settings.File.Replace(".ipa", ".app")}/Info.plist";
-                try
-                {
-                    var zip = new FastZip();
-                    zip.ExtractZip(path, tmpPath, infoPlistZipPath);
-                }
-                catch
-                {
-                    logger.Error($"{settings}-解压失败");
-                    throw;
-                }
-                var infoPlistPath = Path.Combine(tmpPath, infoPlistZipPath);
-                using var plistFs = File.Open(infoPlistPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var plist = (NSDictionary)PropertyListParser.Parse(plistFs);
-                var identifier = plist.ObjectForKey("CFBundleIdentifier").ToString();
-                var version = plist.ObjectForKey("CFBundleVersion").ToString();
+            if (uploadMetaVm.MinIOSettings_Decrypt == null)
+            {
+                logger.Error($"{settings}-上传配置为空");
+                return;
+            }
 
-                logger.Info($"{settings}-ipa解析:{identifier},{version}");
-                logger.Info($"{settings}-准备上传");
-                var localUpdUrl = await ossService.GetLocalUploadUrl(LocalWebAddr, new PresignedUrlSub()
-                {
-                    Category = BLOBCATEGORY,
-                    Hash = hash,
-                    OriginalFileName = fileInfo.Name,
-                    SysUserName = WebProcessor.SysUserName,
-                });
+            var tmpPath = $"tmp/{settings.ProjectCode}/";
+            if (Directory.Exists(tmpPath))
+            {
+                Directory.Delete(tmpPath, true);
+            }
+            Directory.CreateDirectory(tmpPath);
+            var infoPlistZipPath = $"Payload/{settings.File.Replace(".ipa", ".app")}/Info.plist";
+            try
+            {
+                var zip = new FastZip();
+                zip.ExtractZip(path, tmpPath, infoPlistZipPath);
+            }
+            catch
+            {
+                logger.Error($"{settings}-解压失败");
+                throw;
+            }
+            var infoPlistPath = Path.Combine(tmpPath, infoPlistZipPath);
+            using var plistFs = File.Open(infoPlistPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var plist = (NSDictionary)PropertyListParser.Parse(plistFs);
+            var identifier = plist.ObjectForKey("CFBundleIdentifier").ToString();
+            var version = plist.ObjectForKey("CFBundleVersion").ToString();
+            var env = GetEnvironment(settings);
 
-                var minioInner = GetClient(uploadMetaVm.MinIOSettings_Decrypt.Inner);
-                var innerUpldTask = minioInner.PutObjectAsync(uploadMetaVm.BucketName, uploadMetaVm.ObjectName, fileInfo.FullName);
-                _ = innerUpldTask.ContinueWith(_ =>
-                {
-                    logger.Info($"{settings}-内网已上传");
-                }, TaskContinuationOptions.OnlyOnRanToCompletion);
-                
+            logger.Info($"{settings}-准备上传ipa: {identifier}, {version}, {env}");
+            var localUpdUrl = await ossService.GetLocalUploadUrl(LocalWebAddr, new PresignedUrlSub()
+            {
+                Category = BLOBCATEGORY,
+                Hash = hash,
+                OriginalFileName = fileInfo.Name,
+                SysUserName = WebProcessor.SysUserName,
+            });
 
-                var minioWeb = GetClient(uploadMetaVm.MinIOSettings_Decrypt.Web);
-                var webUpldTask =  minioWeb.PutObjectAsync(uploadMetaVm.BucketName, uploadMetaVm.ObjectName, fileInfo.FullName);
-                _ = webUpldTask.ContinueWith(_ =>
-                {
-                    logger.Info($"{settings}-外网已上传");
-                }, TaskContinuationOptions.OnlyOnRanToCompletion);
+            var minioInner = GetClient(uploadMetaVm.MinIOSettings_Decrypt.Inner);
 
+            var upldPlc = Policy.Handle<Exception>().WaitAndRetryAsync(5, time => TimeSpan.FromSeconds(6), (ex, ts) =>
+            {
+                logger.Info($"{settings}-内网上传失败，准备重试: {ex.Message}");
+            });
 
-                await Task.WhenAll(innerUpldTask, webUpldTask);
+            await upldPlc.ExecuteAsync(() =>
+            {
+                return minioInner.PutObjectAsync(uploadMetaVm.BucketName, uploadMetaVm.ObjectName, fileInfo.FullName);
+            });
+            logger.Info($"{settings}-内网已上传");
 
+            var minioWeb = GetClient(uploadMetaVm.MinIOSettings_Decrypt.Web);
+            await upldPlc.ExecuteAsync(() =>
+            {
+                return minioWeb.PutObjectAsync(uploadMetaVm.BucketName, uploadMetaVm.ObjectName, fileInfo.FullName);
+            });
+            logger.Info($"{settings}-公网已上传");
+
+            var saveRecordPlc = Policy.Handle<Exception>().WaitAndRetryAsync(5, time => TimeSpan.FromSeconds(5), (ex, ts) =>
+            {
+                logger.Info($"{settings}-记录添加失败，准备重试: {ex.Message}");
+            });
+
+            await saveRecordPlc.ExecuteAsync(async () =>
+            {
                 await ossService.SaveUpload(new SaveUploadSub()
                 {
                     Category = "IpaBundle",
@@ -197,25 +244,27 @@ namespace Flamer.Portal.LocaCola.Services.Background
                     ProjectCode = settings.ProjectCode,
                     Version = version,
                     SoftwarePackage = hash,
+                    Env = env,
                 });
+            });
 
-                logger.Info($"{settings}-记录添加完毕");
+            logger.Info($"{settings}-记录添加完毕");
+            Console.WriteLine();
+            Console.WriteLine();
 
-                _ = Task.Delay(2000).ContinueWith(_ =>
+            _ = Task.Delay(2000).ContinueWith(_ =>
+            {
+                Policy.Handle<Exception>().WaitAndRetry(3, time => TimeSpan.FromSeconds(2), (ex, ts) =>
                 {
-                    try
+                    logger.Warn($"清理临时文件异常:{ex.Message}");
+                }).Execute(() =>
+                {
+                    if (Directory.Exists(tmpPath))
                     {
-                        if (Directory.Exists(tmpPath))
-                        {
-                            Directory.Delete(tmpPath, true);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex);
+                        Directory.Delete(tmpPath, true);
                     }
                 });
-            }
+            });
         }
 
         /// <summary>
@@ -229,46 +278,82 @@ namespace Flamer.Portal.LocaCola.Services.Background
             return settings.UseSsl ? minio.WithSSL() : minio;
         }
 
-        private void Watch()
+        /// <summary>
+        /// 监听
+        /// </summary>
+        /// <param name="settings"></param>
+        private void Watch(IpaSettings settings)
         {
-            ipaWatchers = new FileSystemWatcher[ipaSettingCollection.Count];
+            var index = ipaSettingCollection.IndexOf(settings);
 
-            foreach (var settings in ipaSettingCollection)
+            ipaWatchers[index] = new FileSystemWatcher()
             {
-                var index = ipaSettingCollection.IndexOf(settings);
+                Filter = "*.ipa",
+                Path = settings.Directory,
+                EnableRaisingEvents = true,
+            };
 
-                ipaWatchers[index] = new FileSystemWatcher()
+            ipaWatchers[index].Changed += async (sender, e) =>
+            {
+                try
                 {
-                    Filter = "*.ipa",
-                    Path = settings.Directory,
-                    EnableRaisingEvents = true,
-                };
+                    logger.Info($"{settings}-ipa已被修改, 类型{e.ChangeType}");
 
-                ipaWatchers[index].Changed += async (sender, e) =>
+                    var fileSettings = ipaSettingCollection.FirstOrDefault(m => m.FullPath == e.FullPath);
+                    if (fileSettings == null)
+                    {
+                        logger.Info($"{settings}-未找到指定文件配置:{e.FullPath}");
+                        return;
+                    }
+
+                    await CheckUpload(fileSettings);
+                }
+                catch (Exception ex)
                 {
-                    try
-                    {
-                        logger.Info($"{settings}-ipa已被修改, 类型{e.ChangeType}");
+                    logger.Error(ex);
+                }
+            };
 
-                        var fileSettings = ipaSettingCollection.FirstOrDefault(m => m.FullPath == e.FullPath);
-                        if (fileSettings == null)
-                        {
-                            logger.Info($"{settings}-未找到指定文件配置:{e.FullPath}");
-                            return;
-                        }
-
-                        await CheckUpload(fileSettings);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex);
-                    }
-                };
-
-                logger.Info($"{settings}-已监听");
-
-            }
+            logger.Info($"{settings}-已监听");
         }
 
+        /// <summary>
+        /// 获取环境
+        /// </summary>
+        /// <param name="settings"></param>
+        /// <returns></returns>
+        private string GetEnvironment(IpaSettings settings)
+        {
+            try
+            {
+                return Policy.Handle<Exception>().WaitAndRetry(3, time => TimeSpan.FromSeconds(2), (ex, ts) =>
+                {
+                    logger.Error($"获取环境失败:{ex.Message}");
+                }).Execute(() =>
+                {
+                    var slash = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? @"\" : "/";
+
+                    var directory = settings.Directory.Replace(@$"{slash}TradingApp.iOS{slash}bin{slash}iPhone{slash}Debug", null);
+                    directory = directory.Replace(@$"{slash}TradingApp.iOS{slash}bin{slash}iPhone{slash}Debug{slash}", null);
+                    var csprojPath = Path.Combine(directory, @$"TradingApp{slash}TradingApp.csproj");
+
+                    var rootEl = ProjectRootElement.Open(csprojPath);
+
+                    var removedItems = rootEl.Items.Where(m => m.ElementName == "Compile" && m.Remove.StartsWith(@"Config\ServiceConfig."))
+                        .Select(m => m.Remove);
+
+                    var rmHasProd = removedItems.Any(m => m.Contains("Production", StringComparison.OrdinalIgnoreCase));
+                    return rmHasProd ? "测试" : "生产";
+                });
+            }
+            catch (Exception ex)
+            {
+#if DEBUG
+                logger.Error(ex);
+#endif
+                return null;
+            }
+
+        }
     }
 }

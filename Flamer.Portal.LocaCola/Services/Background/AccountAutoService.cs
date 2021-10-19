@@ -1,10 +1,7 @@
-﻿using Flamer.Utility.Wroker;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using NLog;
+using Polly;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,14 +34,13 @@ namespace Flamer.Portal.LocaCola.Services.Background
 
         private Task LoginWork()
         {
-            return Retry.DoAscending(userService.Login, int.MaxValue, onSuccess: () =>
+            //进行登录，重试机制加持
+            var plc = Policy.Handle<Exception>().WaitAndRetryForeverAsync(interval => TimeSpan.FromSeconds(5), (ex, ts) =>
             {
-                logger.Info("登录完毕");
-            }, onTryFailed: (ex, delaySeconds) =>
-            {
-                logger.Warn($"登录不成功，{delaySeconds}秒后重试:{Environment.NewLine}{ex}");
+                logger.Warn($"登录失败，{ts.TotalSeconds}秒后重试:{Environment.NewLine}{ex}");
             });
 
+            return plc.ExecuteAsync(userService.Login);
         }
 
     }
